@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>經典俄羅斯方塊 🍓 單一糖果爆炸版</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(135deg, #322147, #221433);
+            color: #fff;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Microsoft JhengHei', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 10px;
+            overflow: hidden; /* 防止手機版整頁滾動 */
+            touch-action: none; 
+        }
+
+        h1 {
+            margin-bottom: 8px;
+            font-size: 2rem;
+            color: #ff7ebb;
+            text-shadow: 2px 2px 0px #fff, 3px 3px 0px #ff3388;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: row; 
+            gap: 20px;
+            background: #3a2554;
+            padding: 20px;
+            border-radius: 24px;
+            border: 5px solid #ff9ebb;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+            max-width: 100%;
+        }
+
+        #gameCanvas {
+            border: 5px solid #ffde6a;
+            background-color: #1a0f29;
+            border-radius: 12px;
+            max-width: 100%;
+            height: auto;
+            aspect-ratio: 10 / 20;
+            touch-action: none; /* 鎖定 Canvas 上的瀏覽器原生滾動 */
+        }
+
+        /* 右側資訊欄 */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 140px;
+        }
+
+        .info-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-box {
+            background: #4a326c;
+            border: 3px solid #a076e0;
+            border-radius: 16px;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .info-box h2 {
+            font-size: 0.95rem;
+            color: #ffde6a;
+            margin-bottom: 3px;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        .info-box p {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #6effeb;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        #previewCanvas {
+            background-color: #1a0f29;
+            border: 3px solid #a076e0;
+            border-radius: 10px;
+            margin-top: 5px;
+            max-width: 70px;
+            height: auto;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .btn {
+            background: linear-gradient(to bottom, #ff6ba7, #ff3388);
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 16px;
+            cursor: pointer;
+            box-shadow: 0 5px 0px #b31655;
+            transition: all 0.1s ease;
+            width: 100%;
+            text-shadow: 1px 1px 0 #8a0b3c;
+        }
+
+        .btn:hover {
+            background: linear-gradient(to bottom, #ff85b7, #ff4d9c);
+        }
+        
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0px #b31655;
+        }
+
+        /* 暫停按鈕樣式 */
+        .btn.pause-btn {
+            background: linear-gradient(to bottom, #a076e0, #6c42ae);
+            box-shadow: 0 5px 0px #4a2880;
+            text-shadow: 1px 1px 0 #31145a;
+        }
+        .btn.pause-btn:hover {
+            background: linear-gradient(to bottom, #b38eff, #7d53c4);
+        }
+        .btn.pause-btn:active {
+            box-shadow: 0 1px 0px #4a2880;
+        }
+
+        /* 結束遊戲按鈕樣式 */
+        .btn.quit-btn {
+            background: linear-gradient(to bottom, #ff5e62, #ff2a2a);
+            box-shadow: 0 5px 0px #b31616;
+            text-shadow: 1px 1px 0 #7e0b0b;
+        }
+        .btn.quit-btn:hover {
+            background: linear-gradient(to bottom, #ff7376, #ff4141);
+        }
+        .btn.quit-btn:active {
+            box-shadow: 0 1px 0px #b31616;
+        }
+
+        /* 手機虛擬按鍵 */
+        .touch-controls {
+            display: none;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            width: 100%;
+            max-width: 360px;
+            margin-top: 10px;
+            touch-action: manipulation;
+        }
+
+        .ctrl-btn {
+            background: #4a326c;
+            border: 2px solid #a076e0;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 10px 0;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 3px 0 #2c1a44;
+        }
+
+        .ctrl-btn:active {
+            background: #5d3f8a;
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #2c1a44;
+        }
+
+        .controls-guide {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #ffbde2;
+            background: rgba(58, 37, 84, 0.8);
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 2px dashed #ff7ebb;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* 彈出視窗基礎樣式 */
+        .modal-overlay {
+            display: none; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(26, 15, 41, 0.9);
+            border-radius: 18px;
+            z-index: 10;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .modal-content {
+            background: #3a2554;
+            border: 5px solid #ffde6a;
+            padding: 25px 15px;
+            border-radius: 24px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            font-size: 1.8rem;
+            color: #ffde6a;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 0px #ff3388;
+        }
+
+        .modal-stats {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+
+        .modal-stats p {
+            background: rgba(0,0,0,0.25);
+            margin: 6px 0;
+            padding: 6px;
+            border-radius: 12px;
+        }
+
+        .modal-stats span {
+            color: #ff7ebb;
+            font-weight: 900;
+            font-size: 1.4rem;
+        }
+
+        /* ─── RWD 手機版關鍵修正 ─── */
+        @media (max-width: 480px) {
+            body {
+                justify-content: center;
+                padding: 5px;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+                margin-bottom: 4px;
+            }
+
+            .game-container {
+                flex-direction: column; 
+                padding: 10px;
+                gap: 8px;
+                align-items: center;
+                width: 95%;
+                max-width: 280px; 
+            }
+
+            #gameCanvas {
+                width: 100%;
+                max-height: 52vh; 
+            }
+
+            .sidebar {
+                flex-direction: column;
+                width: 100%;
+                gap: 6px;
+            }
+
+            .info-group {
+                flex-direction: row;
+                gap: 4px;
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .info-box {
+                margin-bottom: 0;
+                flex: 1;
+                padding: 4px 2px;
+                border-radius: 10px;
+            }
+
+            .info-box h2 {
+                font-size: 0.7rem;
+            }
+
+            .info-box p {
+                font-size: 1rem;
+            }
+
+            #previewCanvas {
+                display: none; 
+            }
+            #nextBox {
+                display: none; 
+            }
+
+            .btn-group {
+                flex-direction: row;
+                gap: 4px;
+            }
+
+            .btn {
+                padding: 6px 2px;
+                font-size: 0.75rem;
+                flex: 1;
+                border-radius: 10px;
+                box-shadow: 0 3px 0px #b31655;
+            }
+            .btn.pause-btn { box-shadow: 0 3px 0px #4a2880; }
+            .btn.quit-btn { box-shadow: 0 3px 0px #b31616; }
+
+            .touch-controls {
+                display: grid; 
+            }
+
+            .controls-guide {
+                display: none; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>俄羅斯方塊 🍓</h1>
+
+    <div class="game-container">
+        <canvas id="gameCanvas" width="240" height="480"></canvas>
+
+        <div class="sidebar">
+            <div class="info-group">
+                <div class="info-box">
+                    <h2>目前分數</h2>
+                    <p id="score">0</p>
+                </div>
+                <div class="info-box">
+                    <h2>目前等級</h2>
+                    <p id="level">1</p>
+                </div>
+                <div class="info-box" id="nextBox">
+                    <h2>下個方塊</h2>
+                    <canvas id="previewCanvas" width="80" height="80"></canvas>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn pause-btn" id="pauseBtn" style="display: none;">暫停 ⏱️</button>
+                <button class="btn quit-btn" id="quitBtn" style="display: none;">結束 ❌</button>
+                <button class="btn" id="startBtn">開始遊戲 🐾</button>
+            </div>
+        </div>
+
+        <!-- 暫停畫面覆蓋層 -->
+        <div class="modal-overlay" id="pauseModal">
+            <div class="modal-content">
+                <h3>遊戲暫停中 ☕</h3>
+                <p style="margin: 15px 0; color: #ffbde2;">休息一下，隨時可以回來！</p>
+                <button class="btn pause-btn" id="resumeBtn" style="width:100%">恢復遊戲 ⚡</button>
+            </div>
+        </div>
+
+        <!-- 遊戲結束視窗 -->
+        <div class="modal-overlay" id="gameOverModal">
+            <div class="modal-content">
+                <h3>遊戲結束 🌟</h3>
+                <div class="modal-stats">
+                    <p>最終得分：<span id="finalScore">0</span> 分</p>
+                    <p>達到等級：<span id="finalLevel">1</span> 級</p>
+                </div>
+                <button class="btn" id="restartBtn" style="width:100%">再玩一次 ⚡</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="touch-controls">
+        <div class="ctrl-btn" id="mLeft">←</div>
+        <div class="ctrl-btn" id="mRot">旋轉</div>
+        <div class="ctrl-btn" id="mDown">↓</div>
+        <div class="ctrl-btn" id="mDrop">直降</div>
+        <div class="ctrl-btn" id="mRight">→</div>
+    </div>
+
+    <div class="controls-guide">
+        左右移動：<b>← 鍵 / → 鍵</b> | 直接降落：<b>↑ 鍵</b><br>
+        旋轉方塊：<b>空白鍵 (Space)</b> | 加速下落：<b>↓ 鍵</b> | 暫停遊戲：<b>P 鍵 / Esc 鍵</b><br>
+        <span style="color:#ffde6a; font-weight:bold;">💡 難度機制：每滿 1000 分即升一級，下落速度會越來越快！</span>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const previewCtx = previewCanvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const quitBtn = document.getElementById('quitBtn');
+        
+        const gameOverModal = document.getElementById('gameOverModal');
+        const finalScore = document.getElementById('finalScore');
+        const finalLevel = document.getElementById('finalLevel');
+        const restartBtn = document.getElementById('restartBtn');
+        const pauseModal = document.getElementById('pauseModal');
+        const resumeBtn = document.getElementById('resumeBtn');
+
+        const ROW = 20;
+        const COL = 10;
+        const SQ = 24; 
+        const VACANT = '#1a0f29'; 
+
+        const COLORS = [
+            null,
+            '#4deeea', '#ffe700', '#a64eff', '#00ff66', '#ff2a6d', '#0575e6', '#ff7b00'
+        ];
+
+        const SHAPES = {
+            1: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], 
+            2: [[1,1],[1,1]],                                             
+            3: [[0,1,0],[1,1,1],[0,0,0]],                                 
+            4: [[0,1,1],[1,1,0],[0,0,0]],                                 
+            5: [[1,1,0],[0,1,1],[0,0,0]],                                 
+            6: [[1,0,0],[1,1,1],[0,0,0]],                                 
+            7: [[0,0,1],[1,1,1],[0,0,0]]                                  
+        };
+
+        let board = [];
+        let score = 0;
+        let level = 1;
+        let gameOver = false;
+        let gameRunning = false;
+        let isPaused = false;       
+        let dropStart = Date.now();
+        let speed = 1000; 
+        let animationId;
+
+        let currentPiece;
+        let nextPieceData; 
+        let particles = []; 
+
+        // 觸控手勢變數
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const SWIPE_THRESHOLD = 25; 
+
+        // ─── 新增：點擊計時器與計數器 ───
+        let touchClicks = 0;
+        let touchTimeout = null;
+        let isMoving = false; // 用來標記本次觸控是否發生過滑動搬移
+
+        function initBoard() {
+            for (let r = 0; r < ROW; r++) {
+                board[r] = [];
+                for (let c = 0; c < COL; c++) {
+                    board[r][c] = 0; 
+                }
+            }
+        }
+
+        function drawSquare(x, y, color, isCandy = false, context = ctx) {
+            if(color === VACANT) {
+                context.fillStyle = color;
+                context.fillRect(x * SQ, y * SQ, SQ, SQ);
+                context.strokeStyle = '#231636';
+                context.lineWidth = 1;
+                context.strokeRect(x * SQ, y * SQ, SQ, SQ);
+            } else {
+                let px = x * SQ + 1;
+                let py = y * SQ + 1;
+                let pw = SQ - 2;
+                let ph = SQ - 2;
+
+                if (isCandy) {
+                    context.fillStyle = '#ff2a6d';
+                    context.beginPath();
+                    context.arc(px + pw/2, py + ph/2, SQ/2 - 2, 0, Math.PI * 2);
+                    context.fill();
+
+                    context.fillStyle = '#00ff66';
+                    context.fillRect(px + pw/2 - 3, py + 1, 6, 4);
+
+                    context.fillStyle = '#ffffff';
+                    context.font = "12px sans-serif";
+                    context.fillText("🍓", px + 1, py + ph - 2);
+                } else {
+                    let radius = 5; 
+                    context.fillStyle = color;
+                    context.beginPath();
+                    context.moveTo(px + radius, py);
+                    context.lineTo(px + pw - radius, py);
+                    context.quadraticCurveTo(px + pw, py, px + pw, py + radius);
+                    context.lineTo(px + pw, py + ph - radius);
+                    context.quadraticCurveTo(px + pw, py + ph, px + pw - radius, py + ph);
+                    context.lineTo(px + radius, py + ph);
+                    context.quadraticCurveTo(px, py + ph, px, py + ph - radius);
+                    context.lineTo(px, py + radius);
+                    context.quadraticCurveTo(px, py, px + radius, py);
+                    context.closePath();
+                    context.fill();
+
+                    context.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                    context.lineWidth = 2;
+                    context.stroke();
+                }
+            }
+        }
+
+        function drawBoard() {
+            for (let r = 0; r < ROW; r++) {
+                for (let c = 0; c < COL; c++) {
+                    let val = board[r][c];
+                    drawSquare(c, r, val === 0 ? VACANT : (val === 8 ? '#ff2a6d' : COLORS[val]), val === 8);
+                }
+            }
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8;
+                this.radius = Math.random() * 4 + 2;
+                this.color = ['#ff2a6d', '#ffde6a', '#6effeb', '#00ff66'][Math.floor(Math.random() * 4)];
+                this.alpha = 1;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= 0.04;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function createExplosion(gridX, gridY) {
+            let pixelX = gridX * SQ + SQ / 2;
+            let pixelY = gridY * SQ + SQ / 2;
+            for (let i = 0; i < 15; i++) {
+                particles.push(new Particle(pixelX, pixelY));
+            }
+        }
+
+        class Piece {
+            constructor(type, matrix, isCandy = false) {
+                this.type = type;
+                this.matrix = JSON.parse(JSON.stringify(matrix));
+                this.isCandy = isCandy;
+                this.x = Math.floor((COL - this.matrix[0].length) / 2);
+                this.y = (type === 1 || isCandy) ? -1 : 0; 
+            }
+
+            draw() {
+                for (let r = 0; r < this.matrix.length; r++) {
+                    for (let c = 0; c < this.matrix[r].length; c++) {
+                        if (this.matrix[r][c]) {
+                            if (this.y + r >= 0) {
+                                drawSquare(this.x + c, this.y + r, this.isCandy ? '#ff2a6d' : COLORS[this.type], this.isCandy);
+                            }
+                        }
+                    }
+                }
+            }
+
+            clear() {
+                for (let r = 0; r < this.matrix.length; r++) {
+                    for (let c = 0; c < this.matrix[r].length; c++) {
+                        if (this.matrix[r][c]) {
+                            if (this.y + r >= 0) {
+                                drawSquare(this.x + c, this.y + r, VACANT);
+                            }
+                        }
+                    }
+                }
+            }
+
+            moveDown() {
+                if (!this.collision(0, 1, this.matrix)) {
+                    this.clear();
+                    this.y++;
+                    this.draw();
+                } else {
+                    this.lock();
+                    if (!gameOver) {
+                        generateNewPiece();
+                    }
+                }
+            }
+
+            moveRight() {
+                if (!this.collision(1, 0, this.matrix)) {
+                    this.clear();
+                    this.x++;
+                    this.draw();
+                }
+            }
+
+            moveLeft() {
+                if (!this.collision(-1, 0, this.matrix)) {
+                    this.clear();
+                    this.x--;
+                    this.draw();
+                }
+            }
+
+            rotate() {
+                if (this.isCandy) return; 
+
+                let nextMatrix = [];
+                for (let r = 0; r < this.matrix[0].length; r++) {
+                    nextMatrix[r] = [];
+                    for (let c = 0; c < this.matrix.length; c++) {
+                        nextMatrix[r][c] = this.matrix[this.matrix.length - 1 - c][r];
+                    }
+                }
+
+                if (!this.collision(0, 0, nextMatrix)) {
+                    this.clear();
+                    this.matrix = nextMatrix;
+                    this.draw();
+                }
+            }
+
+            hardDrop() {
+                this.clear();
+                while (!this.collision(0, 1, this.matrix)) {
+                    this.y++;
+                }
+                this.draw();
+                this.lock();
+                if (!gameOver) {
+                    generateNewPiece();
+                }
+            }
+
+            collision(xOffset, yOffset, pieceMatrix) {
+                for (let r = 0; r < pieceMatrix.length; r++) {
+                    for (let c = 0; c < pieceMatrix[r].length; c++) {
+                        if (!pieceMatrix[r][c]) continue;
+
+                        let newX = this.x + c + xOffset;
+                        let newY = this.y + r + yOffset;
+
+                        if (newX < 0 || newX >= COL || newY >= ROW) return true;
+                        if (newY < 0) continue; 
+                        if (board[newY][newX] > 0) return true;
+                    }
+                }
+                return false;
+            }
+
+            lock() {
+                let candyWorldX = -1;
+                let candyWorldY = -1;
+
+                for (let r = 0; r < this.matrix.length; r++) {
+                    for (let c = 0; c < this.matrix[r].length; c++) {
+                        if (!this.matrix[r][c]) continue;
+                        
+                        if (this.y + r < 0) {
+                            triggerGameOver();
+                            return;
+                        }
+
+                        if (this.isCandy) {
+                            board[this.y + r][this.x + c] = 8; 
+                            candyWorldX = this.x + c;
+                            candyWorldY = this.y + r;
+                        } else {
+                            board[this.y + r][this.x + c] = this.type;
+                        }
+                    }
+                }
+
+                if (this.isCandy && candyWorldX !== -1 && candyWorldY !== -1) {
+                    executeCandyExplosion(candyWorldX, candyWorldY);
+                }
+
+                checkLines();
+                drawBoard();
+            }
+        }
+
+        function executeCandyExplosion(cx, cy) {
+            let cellsToDestroy = [];
+            let range = 2; 
+            
+            cellsToDestroy.push({x: cx, y: cy});
+            for (let i = 1; i <= range; i++) {
+                if (cy - i >= 0) cellsToDestroy.push({x: cx, y: cy - i}); 
+                if (cy + i < ROW) cellsToDestroy.push({x: cx, y: cy + i}); 
+                if (cx - i >= 0) cellsToDestroy.push({x: cx - i, y: cy}); 
+                if (cx + i < COL) cellsToDestroy.push({x: cx + i, y: cy}); 
+            }
+
+            let explodeCount = 0;
+            cellsToDestroy.forEach(cell => {
+                if (board[cell.y][cell.x] > 0) {
+                    board[cell.y][cell.x] = 0; 
+                    explodeCount++;
+                }
+                createExplosion(cell.x, cell.y); 
+            });
+
+            if (explodeCount > 0) {
+                score += explodeCount * 30 * level; 
+                scoreElement.innerText = score;
+                checkLevelUp(); 
+            }
+        }
+
+        function triggerGameOver() {
+            gameOver = true;
+            gameRunning = false;
+            pauseBtn.style.display = 'none'; 
+            quitBtn.style.display = 'none'; 
+            cancelAnimationFrame(animationId);
+            startBtn.innerText = "開始遊戲 🐾";
+            
+            finalScore.innerText = score;
+            finalLevel.innerText = level;
+            gameOverModal.style.display = 'flex';
+        }
+
+        function resetToStartMenu() {
+            gameOver = false;
+            gameRunning = false;
+            isPaused = false;
+            cancelAnimationFrame(animationId);
+
+            pauseModal.style.display = 'none';
+            gameOverModal.style.display = 'none';
+
+            pauseBtn.style.display = 'none'; 
+            quitBtn.style.display = 'none'; 
+
+            score = 0;
+            level = 1;
+            scoreElement.innerText = "0";
+            levelElement.innerText = "1";
+            startBtn.innerText = "開始遊戲 🐾";
+
+            initBoard();
+            particles = [];
+            drawBoard();
+
+            previewCtx.fillStyle = '#1a0f29';
+            previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+        }
+
+        function togglePause() {
+            if (!gameRunning || gameOver) return;
+
+            if (!isPaused) {
+                isPaused = true;
+                cancelAnimationFrame(animationId);
+                pauseModal.style.display = 'flex';
+                pauseBtn.innerText = "恢復 ⚡";
+            } else {
+                isPaused = false;
+                pauseModal.style.display = 'none';
+                pauseBtn.innerText = "暫停 ⏱️";
+                dropStart = Date.now(); 
+                update();
+            }
+        }
+
+        function getNextPiecePackage() {
+            if (Math.random() < 0.15) {
+                return { 
+                    type: 8, 
+                    matrix: [[1]], 
+                    isCandy: true 
+                };
+            } else {
+                let type = Math.floor(Math.random() * 7) + 1;
+                return { 
+                    type: type, 
+                    matrix: SHAPES[type], 
+                    isCandy: false 
+                };
+            }
+        }
+
+        function generateNewPiece() {
+            if (!nextPieceData) nextPieceData = getNextPiecePackage();
+            
+            currentPiece = new Piece(
+                nextPieceData.type, 
+                nextPieceData.matrix, 
+                nextPieceData.isCandy
+            );
+            
+            nextPieceData = getNextPiecePackage();
+
+            if (currentPiece.collision(0, 0, currentPiece.matrix)) {
+                triggerGameOver();
+                return;
+            }
+
+            currentPiece.draw();
+            drawPreview();
+        }
+
+        function drawPreview() {
+            previewCtx.fillStyle = '#1a0f29';
+            previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+            
+            const matrix = nextPieceData.matrix;
+            const offsetX = (previewCanvas.width / SQ - matrix[0].length) / 2;
+            const offsetY = (previewCanvas.height / SQ - matrix.length) / 2;
+
+            for (let r = 0; r < matrix.length; r++) {
+                for (let c = 0; c < matrix[r].length; c++) {
+                    if (matrix[r][c]) {
+                        drawSquare(offsetX + c, offsetY + r, nextPieceData.isCandy ? '#ff2a6d' : COLORS[nextPieceData.type], nextPieceData.isCandy, previewCtx);
+                    }
+                }
+            }
+        }
+
+        function checkLines() {
+            let linesCleared = 0;
+            for (let r = ROW - 1; r >= 0; r--) {
+                let isLineFull = true;
+                for (let c = 0; c < COL; c++) {
+                    if (board[r][c] === 0) {
+                        isLineFull = false;
+                        break;
+                    }
+                }
+                if (isLineFull) {
+                    linesCleared++;
+                    for (let y = r; y > 0; y--) {
+                        board[y] = [...board[y - 1]];
+                    }
+                    board[0] = new Array(COL).fill(0);
+                    r++; 
+                }
+            }
+
+            if (linesCleared > 0) {
+                const rewards = [0, 100, 300, 500, 800];
+                score += rewards[linesCleared] * level;
+                scoreElement.innerText = score;
+
+                checkLevelUp(); 
+            }
+        }
+
+        function checkLevelUp() {
+            let newLevel = Math.floor(score / 1000) + 1;
+            if (newLevel > level) {
+                level = newLevel;
+                levelElement.innerText = level;
+                speed = Math.max(100, 1000 - (level - 1) * 120); 
+            }
+        }
+
+        function update() {
+            if (!gameRunning || gameOver || isPaused) return;
+
+            let now = Date.now();
+            let delta = now - dropStart;
+            if (delta > speed) {
+                currentPiece.moveDown();
+                dropStart = Date.now();
+            }
+
+            drawBoard();
+            if (currentPiece) currentPiece.draw();
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            animationId = requestAnimationFrame(update);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.key === 'p' || e.key === 'P' || e.key === 'Escape') && gameRunning && !gameOver) {
+                e.preventDefault();
+                togglePause();
+                return;
+            }
+
+            if (!gameRunning || gameOver || isPaused) return;
+            
+            if (e.key === 'ArrowLeft') {
+                currentPiece.moveLeft();
+            } else if (e.key === 'ArrowUp') { 
+                e.preventDefault();
+                currentPiece.hardDrop(); 
+            } else if (e.key === 'ArrowRight') {
+                currentPiece.moveRight();
+            } else if (e.key === 'ArrowDown') {
+                currentPiece.moveDown();
+            } else if (e.key === ' ') {
+                e.preventDefault(); 
+                currentPiece.rotate(); 
+            }
+        });
+
+        // ─── 觸控拖曳移動方塊邏輯 ───
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); 
+            
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            isMoving = false; // 每次觸控剛開始時，尚未發生滑動
+            touchClicks++;
+
+            // 處理單擊與雙擊的計時器
+            if (touchClicks === 1) {
+                touchTimeout = setTimeout(() => {
+                    // 250毫秒內沒有點第二下，判定為「單擊」
+                    // 且必須是在「沒有滑動搬移方塊」的情況下才觸發單擊動作
+                    if (!isMoving) {
+                        if (gameRunning && !gameOver) {
+                            togglePause(); // 遊戲中 -> 暫停或恢復
+                        }
+                    }
+                    touchClicks = 0; // 重設計數
+                }, 250);
+            } else if (touchClicks === 2) {
+                clearTimeout(touchTimeout); // 取消單擊判定的定時器
+                touchClicks = 0; // 重設計數
+                
+                // 雙擊事件：若遊戲未開始或結束，則「開始遊戲」
+                if (!gameRunning || gameOver) {
+                    startGame();
+                }
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (!gameRunning || gameOver || isPaused || !currentPiece) return;
+            e.preventDefault();
+
+            const touch = e.touches[0];
+            const diffX = touch.clientX - touchStartX;
+            const diffY = touch.clientY - touchStartY;
+
+            // 判斷水平移動（左右滑動）
+            if (Math.abs(diffX) > SWIPE_THRESHOLD) {
+                isMoving = true; // 標記發生了移動，不觸發單擊
+                if (diffX > 0) {
+                    currentPiece.moveRight();
+                } else {
+                    currentPiece.moveLeft();
+                }
+                touchStartX = touch.clientX; 
+                touchStartY = touch.clientY; 
+            } 
+            // 判斷垂直下落（向下滑動）
+            else if (diffY > SWIPE_THRESHOLD) {
+                isMoving = true; // 標記發生了移動，不觸發單擊
+                currentPiece.moveDown();
+                touchStartY = touch.clientY; 
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (!gameRunning || gameOver || isPaused || !currentPiece) return;
+            e.preventDefault();
+
+            const touch = e.changedTouches[0];
+            const diffX = touch.clientX - touchStartX;
+            const diffY = touch.clientY - touchStartY;
+
+            // 如果是遊戲進行中，且完全沒有滑動過（純點擊放開），則執行「旋轉方塊」
+            if (!isMoving && Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
+                currentPiece.rotate();
+            }
+        }, { passive: false });
+
+
+        function bindTouch(id, action) {
+            const el = document.getElementById(id);
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (gameRunning && !gameOver && !isPaused && currentPiece) {
+                    action();
+                }
+            });
+        }
+
+        bindTouch('mLeft', () => currentPiece.moveLeft());
+        bindTouch('mRight', () => currentPiece.moveRight());
+        bindTouch('mDown', () => currentPiece.moveDown());
+        bindTouch('mRot', () => currentPiece.rotate());
+        bindTouch('mDrop', () => currentPiece.hardDrop());
+
+        function startGame() {
+            gameOverModal.style.display = 'none'; 
+            pauseModal.style.display = 'none';
+            cancelAnimationFrame(animationId);
+            initBoard();
+            particles = [];
+            drawBoard();
+            score = 0;
+            level = 1;
+            speed = 1000;
+            gameOver = false;
+            isPaused = false;
+            gameRunning = true;
+            scoreElement.innerText = score;
+            levelElement.innerText = level;
+            startBtn.innerText = "遊戲中... 🍭";
+            pauseBtn.innerText = "暫停 ⏱️";
+            
+            pauseBtn.style.display = 'block'; 
+            quitBtn.style.display = 'block'; 
+            
+            nextPieceData = null;
+            generateNewPiece();
+            if (!gameOver) {
+                dropStart = Date.now();
+                update();
+            }
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (gameRunning) return; 
+            startGame();
+        });
+        
+        restartBtn.addEventListener('click', startGame);
+        pauseBtn.addEventListener('click', togglePause);
+        resumeBtn.addEventListener('click', togglePause);
+        
+        quitBtn.addEventListener('click', () => {
+            if (gameRunning && !gameOver) {
+                resetToStartMenu();
+            }
+        });
+
+        initBoard();
+        drawBoard();
+    </script>
+</body>
+</html>
